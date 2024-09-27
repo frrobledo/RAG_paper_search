@@ -53,13 +53,13 @@ Dual RAG Paper System/
 #### **a. Clone the Repository**
 
 ```bash
-git clone https://github.com/your-username/your-project-name.git
+git clone https://github.com/frrobledo/RAG_paper_search.git
 ```
 
 #### **b. Install Dependencies**
 
 ```bash
-cd your-project-name/server
+cd RAG_paper_search/server
 pip install flask numpy annoy
 sudo apt-get install poppler-utils
 ```
@@ -84,13 +84,13 @@ python app.py
 #### **a. Clone the Repository**
 
 ```bash
-git clone https://github.com/your-username/your-project-name.git
+git clone https://github.com/frrobledo/RAG_paper_search.git
 ```
 
 #### **b. Install Dependencies**
 
 ```bash
-cd your-project-name/processing
+cd RAG_paper_search/processing
 pip install -U sentence-transformers numpy annoy requests
 ```
 
