@@ -2,9 +2,6 @@ from sentence_transformers import SentenceTransformer
 import requests
 import os
 
-# Server IP address
-server_ip = '<raspberry_pi_ip>'
-
 # Initialize the model
 model = SentenceTransformer('hkunlp/instructor-large')
 
@@ -20,21 +17,24 @@ data = {
     'num_results': 5
 }
 
-# Send the search request
-response = requests.post(f'http://{server_ip}:5000/search', 
-                         json=data, 
-                         headers=headers)
+# Replace with your Raspberry Pi's IP address
+raspberry_pi_ip = ''  # Use your actual Raspberry Pi IP address
 
+# Send the search request
+response = requests.post(f'http://{raspberry_pi_ip}:5000/search', json=data, headers=headers)
 results = response.json()
 
 # Process the search results
 for result in results:
     doc_id = result['doc_id']
+    similarity = result.get('similarity', None)
     print(f"Document ID: {doc_id}")
+    if similarity is not None:
+        print(f"Similarity: {similarity:.4f}")
 
     # Prepare the document retrieval request
     data = {'doc_id': doc_id}
-    file_response = requests.post(f'http://{server_ip}:5000/document', json=data, headers=headers)
+    file_response = requests.post(f'http://{raspberry_pi_ip}:5000/document', json=data, headers=headers)
 
     if file_response.status_code == 200:
         # Determine file type

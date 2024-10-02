@@ -5,46 +5,47 @@ import os
 
 app = Flask(__name__)
 
-# Load pre-computed embeddings and document IDs from files
+# Load pre-computed embeddings and document IDs
 embeddings = np.load('embeddings.npy')  # numpy array of embeddings
 doc_ids = np.load('doc_ids.npy')        # numpy array of document IDs
 dimension = embeddings.shape[1]         # dimensionality of the embeddings
-model_name = 'hkunlp/instructor-large'        # name of the Hugging Face model
-# model_name = 'all-mpnet-base-v2'        # name of the Hugging Face model
 
-
-# Create an Annoy index with the specified dimensionality and metric (angular distance)
-index = AnnoyIndex(dimension, 'angular')
-# Load the pre-built Annoy index from file
+# Initialize the Annoy index
+index = AnnoyIndex(dimension, 'angular')  # Ensure 'angular' is used
 index.load('annoy_index.ann')
 
-# Define a route for the search endpoint
+# Define the search endpoint
 @app.route('/search', methods=['POST'])
 def search():
-    """
-    Perform similarity search using the Annoy index.
-    """
-    # Get the query embedding and number of results from the request body
     query_embedding = request.json.get('embedding')
     num_results = request.json.get('num_results', 5)
 
     if query_embedding is None:
         return jsonify({'error': 'embedding is required'}), 400
 
-    # Use the Annoy index to find the nearest neighbors to the query embedding
-    indices = index.get_nns_by_vector(query_embedding, num_results, include_distances=False)
+    # Retrieve indices and distances
+    indices, distances = index.get_nns_by_vector(
+        query_embedding,
+        num_results,
+        include_distances=True
+    )
 
-    # Create a list of document IDs corresponding to the nearest neighbors
-    results = [{'doc_id': doc_ids[i]} for i in indices]
+    # Convert distances to similarities
+    similarities = [1 - (d ** 2) / 2 for d in distances]
 
-    # Return the results as JSON
+    # Create results with doc_ids and similarities
+    results = []
+    for idx, sim in zip(indices, similarities):
+        results.append({
+            'doc_id': doc_ids[idx],
+            'similarity': sim
+        })
+
     return jsonify(results)
 
+# Define the document retrieval endpoint
 @app.route('/document', methods=['POST'])
 def document():
-    """
-    Return the PDF or text file corresponding to the given doc_id.
-    """
     doc_id = request.json.get('doc_id')
     if not doc_id:
         return jsonify({'error': 'doc_id is required'}), 400
@@ -52,11 +53,11 @@ def document():
     # Security check: prevent directory traversal attacks
     doc_id = os.path.basename(doc_id)
 
-    # Paths to the directories containing PDFs and text files
+    # Paths to directories containing PDFs and text files
     pdf_dir = '/home/pi/documents/PDF'
     text_dir = '/home/pi/documents/texts'
 
-    # Construct the PDF and text file paths
+    # Construct file paths
     base_filename = os.path.splitext(doc_id)[0]
     pdf_filename = f"{base_filename}.pdf"
     text_filename = f"{base_filename}.txt"
@@ -64,18 +65,11 @@ def document():
     pdf_path = os.path.join(pdf_dir, pdf_filename)
     text_path = os.path.join(text_dir, text_filename)
 
-    # Check if the PDF file exists
+    # Send the PDF if it exists; otherwise, send the text file
     if os.path.isfile(pdf_path):
-        try:
-            return send_file(pdf_path, mimetype='application/pdf')
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-    # If PDF doesn't exist, check for text file
+        return send_file(pdf_path, mimetype='application/pdf')
     elif os.path.isfile(text_path):
-        try:
-            return send_file(text_path, mimetype='text/plain')
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        return send_file(text_path, mimetype='text/plain')
     else:
         return jsonify({'error': 'File not found'}), 404
 

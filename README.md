@@ -140,7 +140,7 @@ python call_server.py
 
 3. **Enter Your Query:**
 
-   When prompted, input your search query. The script will retrieve and save the most relevant documents.
+   When prompted, input your search query. The script will retrieve and save the most relevant documents as well as show the cosine similarity with the query.
 
 ## **Customization**
 
